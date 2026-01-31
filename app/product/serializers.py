@@ -41,3 +41,52 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             "is_active", "is_favorite", 
             "images", "model_title", "category_title"
         ]
+
+class ProductCreateSerializer(serializers.ModelSerializer):
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = Product
+        fields = [
+            'title','description', 'price', 'size',
+            'category', 'model', 'images'
+        ]
+
+    def validate_title(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError("Название должно быть минимум 3 символа!")
+        return value
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Цена должно быть больше 0!")
+        return value
+
+    def validate_size(self, value):
+        if len(value) > 10:
+            raise serializers.ValidationError("Размер слишком длинный!")
+        return value
+
+    def validate(self, attrs):
+        category = attrs.get("category")
+        model = attrs.get("model")
+
+        if model and category and model.category != category:
+            raise serializers.ValidationError(
+                "Модель не принадлежит выбранной категории!"
+            )
+
+        return attrs
+
+    def create(self, validate_data):
+        images_data = validate_data.pop("images", [])
+        product = Product.objects.create(**validate_data)
+        
+        for img in images_data:
+            ProductImage.objects.create(product=product, image=img)
+
+        return product

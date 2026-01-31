@@ -2,9 +2,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.cache import cache
+from django.shortcuts import get_object_or_404
+from rest_framework.generics import CreateAPIView
 
 from app.product.models import Product
-from app.product.serializers import ProductSerializer, ProductDetailSerializer
+from app.product.serializers import ProductSerializer, ProductDetailSerializer, ProductCreateSerializer
+
+class ProductCreateAPIView(CreateAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductCreateSerializer
 
 class ProductListAPIView(APIView):
     def get(self, request):
@@ -27,14 +33,41 @@ class ProductListAPIView(APIView):
         cache.set(cache_key, serializer.data, timeout=60 * 2)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
 class ProductDetailAPIView(APIView):
-    def get(self, request, uuid):
-        try:
-            product = (Product.objects.select_related("category", "model")
-            .prefetch_related("images").get(uuid=uuid))
-        except Product.DoesNotExist:
-            return Response({"error" : "Not Fount"}, status=404)
+    
+    def get_object(self, uuid):
+        return get_object_or_404(
+            Product.objects.select_related("category", "model")
+            .prefetch_related("images"), uuid=uuid
+        )
 
-        serializer = ProductDetailSerializer(product)
+    def get(self, request, uuid):
+        serializer = ProductDetailSerializer(self.get_object(uuid))
         return Response(serializer.data)
+    
+    def put(self, request, uuid):
+        product = self.get_object(uuid)
+        serializer = ProductDetailSerializer(product, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            cache.delete("product_list")
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+        
+    def patch(self, request, uuid):
+        product = self.get_object(uuid)
+        serializer = ProductDetailSerializer(product, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            cache.delete("product_list")
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, uuid):
+        self.get_object(uuid).delete()
+        cache.delete("product_list")
+        return Response(status=204)
