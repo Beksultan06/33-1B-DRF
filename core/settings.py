@@ -44,6 +44,8 @@ INSTALLED_APPS = [
 
     # rest
     'rest_framework',
+    'django_filters',
+    'drf_yasg',
 
     # app
     'app.settings',
@@ -141,4 +143,10 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "unique-snowflake",
     }
+}
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ]
 }
