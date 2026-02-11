@@ -14,6 +14,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             "id",
+            'user',
             "uuid",
             "title",
             "description",
@@ -35,7 +36,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "uuid", "title", 
+            "id","user", "uuid", "title", 
             "description", "price", 
             "created_at", "size", 
             "is_active", "is_favorite", 
@@ -82,10 +83,16 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def create(self, validate_data):
-        images_data = validate_data.pop("images", [])
-        product = Product.objects.create(**validate_data)
-        
+    def create(self, validated_data):
+        images_data = validated_data.pop("images", [])
+
+        request = self.context.get("request")  
+
+        product = Product.objects.create(
+            user=request.user,
+            **validated_data
+        )
+
         for img in images_data:
             ProductImage.objects.create(product=product, image=img)
 

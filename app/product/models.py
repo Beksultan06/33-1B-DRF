@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from app.users.models import User
 
 class Category(models.Model):
     title = models.CharField(
@@ -34,6 +35,10 @@ class Models(models.Model):
         verbose_name_plural = 'Модели'
 
 class Product(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='user_porduct'
+    )
     uuid = models.UUIDField(
         default=uuid.uuid4,
         editable=False,
