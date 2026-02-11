@@ -76,6 +76,8 @@
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import IsAuthenticated, AllowAny
+
 from app.product.models import Product
 from app.product.serializers import (
     ProductSerializer,
@@ -104,3 +106,8 @@ class ProductViewSet(mixins.ListModelMixin,
         elif self.action == "retrieve":
             return ProductDetailSerializer
         return ProductSerializer
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [IsAuthenticated()]
+        return [AllowAny()]
