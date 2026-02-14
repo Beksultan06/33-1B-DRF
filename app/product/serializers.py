@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
-from app.product.models import Category, Models, Product, ProductImage
+from app.product.models import (
+    Category, Models, Product, ProductImage, Favorite,
+    CartItem, Cart
+)
 
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -97,3 +100,33 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             ProductImage.objects.create(product=product, image=img)
 
         return product
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ["id", "user", "product"]
+        read_only_fields = ["id", "created_at"]
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    product_price = serializers.IntegerField(source="product.price", read_only=True)
+
+    class Meta:
+        model = CartItem
+        fields = [
+            "id", "product", "product_title",
+            "product_price", "quantity"
+        ]
+
+class CartSerializer(serializers.ModelSerializer):
+    items = CartItemSerializer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Cart
+        fields = [
+            'id', 'items', 'total_price'
+        ]
+
+    def get_total_price(self, obj):
+        return sum(item.product.price * item.quantity for item in obj.items.all())

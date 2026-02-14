@@ -79,10 +79,7 @@ class Product(models.Model):
         default=False,
         verbose_name='Актив'
     )
-    is_favorite = models.BooleanField(
-        default=False,
-        verbose_name='Избранные'
-    )
+    
 
     def __str__(self):
         return self.title
@@ -106,3 +103,53 @@ class ProductImage(models.Model):
     class Meta:
         verbose_name = 'Фото продукта'
         verbose_name_plural = 'Фото продукта'
+
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='favorites'
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE,
+        related_name='favorited_by'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+        unique_together = ("user", "product")
+        verbose_name = "Избранное"
+        verbose_name_plural = "Избранные"
+
+    def __str__(self):
+        return f"{self.user} {self.product}"
+
+class Cart(models.Model):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE,
+        related_name="cart"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return self.user
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(
+        Cart, on_delete=models.CASCADE,
+        related_name='items'
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE
+    )
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return self.cart
+
+    class Meta:
+        unique_together = ("cart", "product")
+    

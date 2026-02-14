@@ -1,88 +1,18 @@
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from rest_framework import status
-# from django.core.cache import cache
-# from django.shortcuts import get_object_or_404
-# from rest_framework.generics import CreateAPIView
-
-# from app.product.models import Product
-# from app.product.serializers import ProductSerializer, ProductDetailSerializer, ProductCreateSerializer
-
-# class ProductCreateAPIView(CreateAPIView):
-#     queryset = Product.objects.all()
-#     serializer_class = ProductCreateSerializer
-
-# class ProductListAPIView(APIView):
-#     def get(self, request):
-#         cache_key = "product_list"
-#         cached_data = cache.get(cache_key)
-
-#         if cached_data:
-#             # print("\n\n\n\nCache\n\n\n\n")
-#             return Response(cached_data, status=status.HTTP_200_OK)
-
-#         # print("\n\n\n\nDB\n\n\n\n")
-
-#         products = (
-#             Product.objects
-#             .select_related("category", "model")
-#             .prefetch_related("images")
-#             .order_by("-created_at")
-#         )
-#         serializer = ProductSerializer(products, many=True)
-#         cache.set(cache_key, serializer.data, timeout=60 * 2)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
-# class ProductDetailAPIView(APIView):
-    
-#     def get_object(self, uuid):
-#         return get_object_or_404(
-#             Product.objects.select_related("category", "model")
-#             .prefetch_related("images"), uuid=uuid
-#         )
-
-#     def get(self, request, uuid):
-#         serializer = ProductDetailSerializer(self.get_object(uuid))
-#         return Response(serializer.data)
-    
-#     def put(self, request, uuid):
-#         product = self.get_object(uuid)
-#         serializer = ProductDetailSerializer(product, data=request.data)
-
-#         if serializer.is_valid():
-#             serializer.save()
-#             cache.delete("product_list")
-#             return Response(serializer.data)
-
-#         return Response(serializer.errors, status=400)
-        
-#     def patch(self, request, uuid):
-#         product = self.get_object(uuid)
-#         serializer = ProductDetailSerializer(product, data=request.data, partial=True)
-
-#         if serializer.is_valid():
-#             serializer.save()
-#             cache.delete("product_list")
-#             return Response(serializer.data)
-
-#         return Response(serializer.errors, status=400)
-
-#     def delete(self, request, uuid):
-#         self.get_object(uuid).delete()
-#         cache.delete("product_list")
-#         return Response(status=204)
-
-
-from rest_framework import mixins
-from rest_framework.viewsets import GenericViewSet
+from rest_framework import mixins, status
+from rest_framework.viewsets import GenericViewSet, ModelViewSet, ViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from app.product.models import Product
+from app.product.models import Product, Favorite, Cart, CartItem
 from app.product.serializers import (
     ProductSerializer,
     ProductCreateSerializer,
     ProductDetailSerializer,
+    FavoriteSerializer,
+    CartItemSerializer, 
+    CartSerializer
 )
 from app.pagination import CustomPageNumberPagination
 from app.filters import ProductFilter
@@ -111,3 +41,51 @@ class ProductViewSet(mixins.ListModelMixin,
         if self.action == "create":
             return [IsAuthenticated()]
         return [AllowAny()]
+
+class FavoriteVIewSet(ModelViewSet):
+    serializer_class = FavoriteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Favorite.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class CartViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def get_cart(self, user):
+        cart, created = Cart.objects.get_or_create(user=user)
+        return cart
+
+    def list(self, request):
+        cart = self.get_cart(request.user)
+        serializer = CartSerializer(cart)
+        return Response(serializer.data)
+
+    def create(self, request):
+        cart = self.get_cart(request.user)
+        product_id  = request.data.get("product")
+        quantity = int(request.data.get("quantity", 1))
+
+        item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product_id=product_id,
+            defaults={"quantity": quantity}
+        )
+
+        if not created:
+            item.quantity += quantity
+            item.save()
+
+        return Response({"detail" : "Товар добавлен в корзину"})
+
+    def destroy(self, reuqest, pk=None):
+        cart = self.get_cart(request.user)
+        item = cart.items.filter(id=pk).first()
+
+        if item:
+            item.delete()
+            return Response({"detail" : "Удалено"})
+        return Response({"detail" : "Not Found"}, status=404)
