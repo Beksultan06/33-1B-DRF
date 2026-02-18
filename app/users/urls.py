@@ -3,7 +3,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenObtainPairView, TokenRefreshView, TokenBlacklistView
 )
-from app.users.views import RegisterAPI, ProfileAPI
+from app.users.views import RegisterAPI, ProfileAPI, TelegramLinkCodeView
 
 router = DefaultRouter()
 router.register(r"register", RegisterAPI, basename='register')
@@ -13,6 +13,7 @@ urlpatterns = [
     path("token/", TokenObtainPairView.as_view()),
     path("token/refresh/", TokenRefreshView.as_view()),
     path("logout/", TokenBlacklistView.as_view()),
+    path("telegram/", TelegramLinkCodeView.as_view())
 ]
 
 urlpatterns += router.urls

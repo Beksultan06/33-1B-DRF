@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+import secrets
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -24,8 +25,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=100, verbose_name='Фамилия')
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
+    telegram_chat_id = models.BigIntegerField(blank=True, null=True)
 
     objects = UserManager()
 
@@ -34,3 +35,18 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email   
+
+
+class TelegramLinkCode(models.Model):
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE,
+        related_name="tg_link"    
+    )
+    code = models.CharField(max_length=10, unique=True)
+    is_user = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @staticmethod
+    def generate_code() -> str:
+        return str(secrets.randbelow(900000) + 100000)
