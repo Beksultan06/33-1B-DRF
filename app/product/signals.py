@@ -1,7 +1,7 @@
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from app.product.models import Product
-from app.notification import send_telegram_message
+from app.notification_ts import send_telegram_message
 
 @receiver(pre_save, sender=Product)
 def notify_product_activade(sender, instance : Product, **kwargs):
