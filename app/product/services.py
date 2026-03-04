@@ -4,7 +4,9 @@ from app.notification.models import NotificationType
 from app.notification.services import publish_notification
 
 def set_order_status(*, order : Order, new_status : str, actor) -> Order:
-    if old_statsu == new_status:
+    old_status = order.status
+
+    if old_status == new_status:
         return order
 
     with transaction.atomic():
@@ -20,7 +22,7 @@ def set_order_status(*, order : Order, new_status : str, actor) -> Order:
                 user_id=order.user_id,
                 type=NotificationType.ORDER_STATUS_CHANGED,
                 title="Статус заказа изменен",
-                message=f"Your orders #{order.id}: {old_statsu} -> {new_status}"
+                message=f"Your order #{order.id}: {old_status} -> {new_status}"
             )
 
             if order.courier_id:

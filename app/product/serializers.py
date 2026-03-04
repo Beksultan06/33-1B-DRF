@@ -104,8 +104,8 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
-        fields = ["id", "user", "product"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "user", "product", "created_at"]
+        read_only_fields = ["id", "user", "created_at"]
 
 class CartItemSerializer(serializers.ModelSerializer):
     product_title = serializers.CharField(source='product.title', read_only=True)

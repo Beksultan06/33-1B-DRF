@@ -135,7 +135,7 @@ class Cart(models.Model):
     )
 
     def __str__(self):
-        return self.user
+        return str(self.user)
 
 class CartItem(models.Model):
     cart = models.ForeignKey(
@@ -148,7 +148,7 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return self.cart
+        return str(self.cart)
 
     class Meta:
         unique_together = ("cart", "product")

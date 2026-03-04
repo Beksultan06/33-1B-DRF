@@ -4,9 +4,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
 
 from app.users.permissions import IsManager, IsCourier, IsCustomer
 from app.product.models import Order, OrderStatus, Product, Favorite, Cart, CartItem
+from app.product.services import set_order_status
 from app.product.serializers import (
     ProductSerializer,
     ProductCreateSerializer,
@@ -83,7 +86,7 @@ class CartViewSet(ViewSet):
 
         return Response({"detail" : "Товар добавлен в корзину"})
 
-    def destroy(self, reuqest, pk=None):
+    def destroy(self, request, pk=None):
         cart = self.get_cart(request.user)
         item = cart.items.filter(id=pk).first()
 
@@ -113,4 +116,22 @@ class OrderViewSet(mixins.CreateModelMixin,
         if getattr(user, "is_courier", False):
             return Order.objects.filter(courier=user).order_by("-id")
 
-        return Order.object.filter(user=user).order_by("-id")
+        return Order.objects.filter(user=user).order_by("-id")
+
+
+class OrderStatusUpdateAPI(APIView):
+    permission_classes = [IsAuthenticated, IsManager]
+
+    def patch(self, request, pk: int):
+        order = get_object_or_404(Order, pk=pk)
+
+        new_status = request.data.get("status")
+        if not new_status:
+            return Response({"detail" : "status invalid"}, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_statuses = {choice for choice, _ in OrderStatus.choices}
+        if new_status not in valid_statuses:
+            return Response({"detail": "unknown status"}, status=status.HTTP_400_BAD_REQUEST)
+
+        set_order_status(order=order, new_status=new_status, actor=request.user)
+        return Response({"ok": True}, status=status.HTTP_200_OK)
