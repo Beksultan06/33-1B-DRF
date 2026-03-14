@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     "rest_framework.authtoken",
+    "channels",
     'drf_yasg',
     "rest_framework_simplejwt.token_blacklist",
     "dj_rest_auth",
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
     'app.product',
     'app.users',
     'app.notification',
+    'app.chat',
 ]
 
 SITE_ID = 1
@@ -78,6 +80,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
+
+ASGI_APPLICATION = "core.asgi.application"
 
 TEMPLATES = [
     {
@@ -157,6 +161,12 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "unique-snowflake",
+    }
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
 
