@@ -25,7 +25,7 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "participants", "created_by", "created", "websocket_url"]
 
     def get_websocket_url(self, obj):
-        return f"/ws/chat/rooms/{obj.id}"
+        return f"/ws/chat/rooms/{obj.id}/"
 
 class ChatRoomCreateSerializer(serializers.ModelSerializer):
     participant_ids = serializers.ListField(

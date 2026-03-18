@@ -20,3 +20,44 @@ token_parameter = openapi.Parameter(
     required=True    
 )
 
+class ChatRoomViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    GenericViewSet
+):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [QueryParamJWTAuthentication]
+
+    def get_queryset(self):
+        return (
+            ChatRoom.objects.filter(participants=self.request.user)
+            .prefetch_related("participants", "messages__sender")
+            .select_related("created_by")
+            .distinct()
+        )
+    
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ChatRoomCreateSerializer
+        return ChatRoomSerializer
+
+    @swagger_auto_schema(manual_parameters=[token_parameter])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        manual_parameters=[token_parameter],
+        request_body=ChatRoomCreateSerializer,
+        responses={201: ChatRoomSerializer},
+    )
+    def create(self, request, *args, **kwargs): 
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        chat = serializer.save()
+        output_serializer = ChatRoomSerializer(chat, context=self.get_serializer_context())
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+    @swagger_auto_schema(manual_parameters=[token_parameter])
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
